@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Salary Slip - Apex Global Technologies</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#0B0F19',
+                        cardBg: '#111827',
+                        cardBorder: '#1F2937',
+                        cyanGlow: '#06B6D4',
+                        emeraldGlow: '#10B981',
+                        roseGlow: '#F43F5E',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Font Inter -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS & Print Media Query Optimization -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0F19;
+            color: #f1f5f9;
+        }
+        .font-mono-num {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0F19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1F2937;
+            border-radius: 4px;
+        }
+
+        /* PRINT STYLES: Converts dark mode dashboard into clean, crisp light paper format for printing/saving PDF */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .printable-area {
+                background: #ffffff !important;
+                color: #000000 !important;
+                border: 1px solid #000000 !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                padding: 20px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .printable-area * {
+                color: #000000 !important;
+                border-color: #d1d5db !important;
+            }
+            .print-bg-gray {
+                background-color: #f3f4f6 !important;
+            }
+            .print-accent-border {
+                border-left: 4px solid #000000 !important;
+            }
+            .print-badge {
+                border: 1px solid #000000 !important;
+                background-color: #f3f4f6 !important;
+                color: #000000 !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 antialiased">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Navigation & Actions Bar (Hidden during Print) -->
+        <header class="glass-card p-4 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
+            <div class="flex items-center space-x-3">
+                <a href="hrdashboard.html" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-all flex items-center justify-center" aria-label="Back to HR dashboard" title="Back to HR dashboard">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-cyan-400"></i>
+                        Employee Salary Slip
+                    </h1>
+                    <p class="text-xs text-slate-400">Official statement of earnings, taxes, and deductions</p>
+                </div>
+            </div>
+
+            <!-- Controls: Pay Period Selector & Action Buttons -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Month Selector -->
+                <div class="flex items-center space-x-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
+                    <i class="fa-solid fa-calendar-days text-slate-400 text-xs"></i>
+                    <label for="periodSelect" class="text-xs text-slate-400 font-medium">Pay Period:</label>
+                    <select id="periodSelect" onchange="changePayPeriod(this.value)" class="bg-transparent text-xs font-semibold text-cyan-400 focus:outline-none cursor-pointer">
+                        <option value="sep2026" selected>September 2026</option>
+                        <option value="aug2026">August 2026</option>
+                        <option value="jul2026">July 2026</option>
+                        <option value="jun2026">June 2026</option>
+                    </select>
+                </div>
+
+                <!-- HR Employee Switch Search -->
+                <div class="relative">
+                    <input type="text" placeholder="Switch Employee ID..." class="bg-slate-900 text-xs text-slate-200 border border-slate-800 rounded-xl pl-8 pr-3 py-2 w-40 focus:w-52 focus:outline-none focus:border-cyan-500 transition-all">
+                    <i class="fa-solid fa-user-gear absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
+                </div>
+
+                <!-- Print & Export Buttons -->
+                <button onclick="window.print()" class="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-cyan-600/20 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print Payslip</span>
+                </button>
+                <button onclick="downloadPDF()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Download PDF</span>
+                </button>
+                <button onclick="sendEmailModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-purple-400"></i>
+                    <span class="hidden sm:inline">Send via Email</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout Grid: Payslip Document (Left 2/3) + History Sidebar (Right 1/3) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- LEFT 2 COLUMNS: Printable Salary Slip Card -->
+            <div class="lg:col-span-2">
+                <div id="payslipContainer" class="glass-card p-6 md:p-8 rounded-3xl shadow-2xl border border-slate-800 printable-area space-y-6">
+                    
+                    <!-- 1. Company Branding Header -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-slate-800 gap-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-extrabold text-white text-xl shadow-lg print-badge">
+                                A
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-black text-white tracking-wide uppercase">Apex Global Technologies Inc.</h2>
+                                <p class="text-xs text-slate-400">100 Innovation Boulevard, Tech District, CA 94016</p>
+                                <p class="text-[11px] text-slate-500">Tax ID / EIN: 94-8839201 | Reg No: AGT-2024-US</p>
+                            </div>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <span class="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[11px] font-bold px-3 py-1 rounded-full inline-block mb-2 print-badge" id="payPeriodBadge">
+                                September 2026
+                            </span>
+                            <div class="text-xs text-slate-400">Pay Date: <strong class="text-slate-200" id="payDateVal">Sep 30, 2026</strong></div>
+                            <div class="text-xs text-slate-400">Payslip No: <strong class="text-slate-200 font-mono-num" id="slipNoVal">SLIP-2026-0948</strong></div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Employee Details & Attendance Grid -->
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-id-card"></i> Employee Particulars
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-900/80 rounded-2xl border border-slate-800/80 text-xs print-bg-gray">
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">Employee Name</span>
+                                <span class="font-bold text-slate-100" id="empName">Alex Morgan</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">Employee ID</span>
+                                <span class="font-bold text-slate-100 font-mono-num" id="empId">EMP-4092</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">Designation</span>
+                                <span class="font-semibold text-slate-200" id="empDesignation">Sr. Software Engineer</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">Department</span>
+                                <span class="font-semibold text-slate-200" id="empDept">Engineering Ops</span>
+                            </div>
+
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">Bank Name</span>
+                                <span class="font-semibold text-slate-200" id="bankName">Chase Bank USA</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">Account Number</span>
+                                <span class="font-semibold text-slate-200 font-mono-num" id="accNum">•••• •••• 5678</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">Working Days / LOP</span>
+                                <span class="font-semibold text-slate-200" id="workDays">22 Days / 0 Days</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-500 block uppercase font-medium">PF / Tax SSN ID</span>
+                                <span class="font-semibold text-slate-200 font-mono-num" id="taxId">SSN-•••-••-9821</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Earnings & Deductions Breakdown Tables -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <!-- EARNINGS TABLE -->
+                        <div class="border border-slate-800 rounded-2xl overflow-hidden">
+                            <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center print-bg-gray">
+                                <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-plus"></i> Earnings
+                                </span>
+                                <span class="text-[10px] text-slate-500">Amount (₹)</span>
+                            </div>
+                            <table class="w-full text-xs text-left text-slate-300">
+                                <tbody class="divide-y divide-slate-800/60">
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Basic Salary</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num" id="basicSalary">₹5,000.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">House Rent Allowance (HRA)</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num" id="hra">₹1,800.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Special / Conveyance Allowance</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num" id="specialAllowance">₹950.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Performance Bonus</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num" id="bonus">₹700.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Overtime Allowance (10 hrs)</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num" id="overtime">₹300.00</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-emerald-500/10 font-bold border-t border-slate-700 print-bg-gray">
+                                        <td class="py-3 px-4 text-emerald-400">Total Gross Earnings</td>
+                                        <td class="py-3 px-4 text-right font-mono-num text-emerald-400 text-sm" id="totalGross">₹8,750.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- DEDUCTIONS TABLE -->
+                        <div class="border border-slate-800 rounded-2xl overflow-hidden">
+                            <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center print-bg-gray">
+                                <span class="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-minus"></i> Deductions
+                                </span>
+                                <span class="text-[10px] text-slate-500">Amount (₹)</span>
+                            </div>
+                            <table class="w-full text-xs text-left text-slate-300">
+                                <tbody class="divide-y divide-slate-800/60">
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Provident Fund (PF / 401k)</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num text-rose-300" id="pfDeduction">₹600.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Income Tax / Tax Deducted (TDS)</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num text-rose-300" id="tdsDeduction">₹1,050.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Health Insurance Premium</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num text-rose-300" id="healthDeduction">₹180.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Professional Tax</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num text-rose-300" id="profTax">₹70.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2.5 px-4 font-medium">Loan / Advance Recovery</td>
+                                        <td class="py-2.5 px-4 text-right font-mono-num text-rose-300" id="loanRecovery">₹0.00</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-rose-500/10 font-bold border-t border-slate-700 print-bg-gray">
+                                        <td class="py-3 px-4 text-rose-400">Total Deductions</td>
+                                        <td class="py-3 px-4 text-right font-mono-num text-rose-400 text-sm" id="totalDeductions">₹1,900.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                    </div>
+
+                    <!-- 4. NET PAY HIGHLIGHT BANNER -->
+                    <div class="p-5 bg-gradient-to-r from-cyan-950/80 via-slate-900 to-emerald-950/80 rounded-2xl border-2 border-cyan-500/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print-bg-gray print-accent-border">
+                        <div>
+                            <span class="text-[10px] uppercase font-extrabold tracking-widest text-cyan-400 block">NET SALARY PAYABLE</span>
+                            <div class="text-xs text-slate-300 mt-1 italic" id="amountInWords">
+                                Amount in Words: <strong class="text-white not-italic" id="amountWordsText">Six Thousand Eight Hundred Fifty Rupees Only</strong>
+                            </div>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <div class="text-3xl font-black text-emerald-400 font-mono-num tracking-tight" id="netPayDisplay">₹6,850.00</div>
+                            <span class="text-[10px] text-slate-400">Credited via Direct Deposit</span>
+                        </div>
+                    </div>
+
+                    <!-- 5. Signatures & Footer Note -->
+                    <div class="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-end gap-6 text-xs text-slate-400">
+                        <div class="space-y-1">
+                            <p class="text-[11px]">This is a system-generated computer salary slip and does not require a physical signature.</p>
+                            <p class="text-[10px] text-slate-500">For payroll queries, contact <a href="mailto:payroll@apexglobal.com" class="text-cyan-400 underline">payroll@apexglobal.com</a></p>
+                        </div>
+                        <div class="text-center w-full sm:w-auto">
+                            <div class="font-serif italic text-slate-300 text-sm border-b border-slate-700 pb-1 mb-1">Apex Payroll Auth</div>
+                            <span class="text-[10px] uppercase text-slate-500 block">Authorized Signatory</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT 1 COLUMN: Past Payslips Archive Sidebar (Hidden during Print) -->
+            <div class="space-y-6 no-print">
+                
+                <!-- Quick Summary Stat Box -->
+                <div class="glass-card p-5 rounded-2xl">
+                    <h3 class="font-bold text-slate-100 text-sm mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-calculator text-cyan-400"></i>
+                        YTD Earnings Summary
+                    </h3>
+                    <div class="space-y-3 text-xs">
+                        <div class="flex justify-between items-center py-1.5 border-b border-slate-800">
+                            <span class="text-slate-400">Total YTD Gross:</span>
+                            <span class="font-bold font-mono-num text-slate-200">₹78,750.00</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1.5 border-b border-slate-800">
+                            <span class="text-slate-400">Total YTD Tax Withheld:</span>
+                            <span class="font-bold font-mono-num text-rose-400">₹17,100.00</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1.5">
+                            <span class="text-slate-400">Total Net Received:</span>
+                            <span class="font-bold font-mono-num text-emerald-400">₹61,650.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Past 6 Months Archive List -->
+                <div class="glass-card p-5 rounded-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-100 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-purple-400"></i>
+                            Previous Payslips
+                        </h3>
+                        <span class="text-[10px] text-slate-400">Last 6 Months</span>
+                    </div>
+
+                    <div class="space-y-2.5 text-xs">
+                        
+                        <!-- Sep 2026 -->
+                        <div onclick="changePayPeriod('sep2026')" class="p-3 bg-slate-900/90 hover:bg-slate-800 rounded-xl border border-cyan-500/40 cursor-pointer flex items-center justify-between transition-all">
+                            <div>
+                                <div class="font-bold text-slate-100">September 2026</div>
+                                <div class="text-[10px] text-slate-400 font-mono-num">₹6,850.00 Net</div>
+                            </div>
+                            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Paid</span>
+                        </div>
+
+                        <!-- Aug 2026 -->
+                        <div onclick="changePayPeriod('aug2026')" class="p-3 bg-slate-900/60 hover:bg-slate-800 rounded-xl border border-slate-800 cursor-pointer flex items-center justify-between transition-all">
+                            <div>
+                                <div class="font-bold text-slate-200">August 2026</div>
+                                <div class="text-[10px] text-slate-400 font-mono-num">₹6,850.00 Net</div>
+                            </div>
+                            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Paid</span>
+                        </div>
+
+                        <!-- Jul 2026 -->
+                        <div onclick="changePayPeriod('jul2026')" class="p-3 bg-slate-900/60 hover:bg-slate-800 rounded-xl border border-slate-800 cursor-pointer flex items-center justify-between transition-all">
+                            <div>
+                                <div class="font-bold text-slate-200">July 2026</div>
+                                <div class="text-[10px] text-slate-400 font-mono-num">₹6,850.00 Net</div>
+                            </div>
+                            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Paid</span>
+                        </div>
+
+                        <!-- Jun 2026 -->
+                        <div onclick="changePayPeriod('jun2026')" class="p-3 bg-slate-900/60 hover:bg-slate-800 rounded-xl border border-slate-800 cursor-pointer flex items-center justify-between transition-all">
+                            <div>
+                                <div class="font-bold text-slate-200">June 2026</div>
+                                <div class="text-[10px] text-slate-400 font-mono-num">₹6,600.00 Net</div>
+                            </div>
+                            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Paid</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Support & Help Widget -->
+                <div class="glass-card p-4 rounded-2xl border-l-4 border-l-cyan-400">
+                    <h4 class="font-bold text-xs text-slate-200 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-cyan-400"></i> Discrepancy in Payslip?
+                    </h4>
+                    <p class="text-[11px] text-slate-400 mt-1">If you notice any mismatch in your allowances or tax deductions, please open a ticket with Payroll Ops within 5 business days.</p>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Email Modal (Hidden by default) -->
+    <div id="emailModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 no-print">
+        <div class="glass-card w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-800 relative">
+            <button onclick="closeEmailModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="p-3 bg-purple-500/10 text-purple-400 rounded-2xl border border-purple-500/20">
+                    <i class="fa-solid fa-paper-plane text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-white text-base">Email Salary Slip</h3>
+                    <p class="text-xs text-slate-400">Send PDF document directly to inbox</p>
+                </div>
+            </div>
+            <form onsubmit="handleSendEmail(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">Recipient Email Address</label>
+                    <input type="email" required value="alex.morgan@apexglobal.com" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1">Message Note (Optional)</label>
+                    <textarea rows="2" placeholder="Attached is your September 2026 salary slip..." class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl p-3 focus:outline-none focus:border-cyan-500"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeEmailModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold">Send Email</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50 no-print">
+        <div id="toastIcon" class="p-1.5 bg-cyan-500/20 text-cyan-400 rounded-xl">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <span id="toastMsg">Notification message</span>
+    </div>
+
+    <script>
+        // Mock Data Database for different Pay Periods
+        const payslipData = {
+            sep2026: {
+                periodName: "September 2026",
+                payDate: "Sep 30, 2026",
+                slipNo: "SLIP-2026-0948",
+                basic: 5000,
+                hra: 1800,
+                special: 950,
+                bonus: 700,
+                overtime: 300,
+                pf: 600,
+                tds: 1050,
+                health: 180,
+                profTax: 70,
+                loan: 0,
+                words: "Six Thousand Eight Hundred Fifty Rupees Only"
+            },
+            aug2026: {
+                periodName: "August 2026",
+                payDate: "Aug 31, 2026",
+                slipNo: "SLIP-2026-0842",
+                basic: 5000,
+                hra: 1800,
+                special: 950,
+                bonus: 700,
+                overtime: 300,
+                pf: 600,
+                tds: 1050,
+                health: 180,
+                profTax: 70,
+                loan: 0,
+                words: "Six Thousand Eight Hundred Fifty Rupees Only"
+            },
+            jul2026: {
+                periodName: "July 2026",
+                payDate: "Jul 31, 2026",
+                slipNo: "SLIP-2026-0731",
+                basic: 5000,
+                hra: 1800,
+                special: 950,
+                bonus: 700,
+                overtime: 300,
+                pf: 600,
+                tds: 1050,
+                health: 180,
+                profTax: 70,
+                loan: 0,
+                words: "Six Thousand Eight Hundred Fifty Rupees Only"
+            },
+            jun2026: {
+                periodName: "June 2026",
+                payDate: "Jun 30, 2026",
+                slipNo: "SLIP-2026-0619",
+                basic: 5000,
+                hra: 1800,
+                special: 950,
+                bonus: 450, // lower bonus
+                overtime: 150,
+                pf: 600,
+                tds: 1000,
+                health: 180,
+                profTax: 70,
+                loan: 100, // active loan recovery
+                words: "Six Thousand Six Hundred Rupees Only"
+            }
+        };
+
+        // Format number to currency string
+        function formatCurrency(num) {
+            return '₹' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Change Pay Period Handler
+        function changePayPeriod(key) {
+            const data = payslipData[key];
+            if (!data) return;
+
+            // Update Header & Badge
+            document.getElementById('periodSelect').value = key;
+            document.getElementById('payPeriodBadge').innerText = data.periodName;
+            document.getElementById('payDateVal').innerText = data.payDate;
+            document.getElementById('slipNoVal').innerText = data.slipNo;
+
+            // Update Earnings
+            document.getElementById('basicSalary').innerText = formatCurrency(data.basic);
+            document.getElementById('hra').innerText = formatCurrency(data.hra);
+            document.getElementById('specialAllowance').innerText = formatCurrency(data.special);
+            document.getElementById('bonus').innerText = formatCurrency(data.bonus);
+            document.getElementById('overtime').innerText = formatCurrency(data.overtime);
+
+            const gross = data.basic + data.hra + data.special + data.bonus + data.overtime;
+            document.getElementById('totalGross').innerText = formatCurrency(gross);
+
+            // Update Deductions
+            document.getElementById('pfDeduction').innerText = formatCurrency(data.pf);
+            document.getElementById('tdsDeduction').innerText = formatCurrency(data.tds);
+            document.getElementById('healthDeduction').innerText = formatCurrency(data.health);
+            document.getElementById('profTax').innerText = formatCurrency(data.profTax);
+            document.getElementById('loanRecovery').innerText = formatCurrency(data.loan);
+
+            const totalDed = data.pf + data.tds + data.health + data.profTax + data.loan;
+            document.getElementById('totalDeductions').innerText = formatCurrency(totalDed);
+
+            // Update Net Pay & Words
+            const netPay = gross - totalDed;
+            document.getElementById('netPayDisplay').innerText = formatCurrency(netPay);
+            document.getElementById('amountWordsText').innerText = data.words;
+
+            showToast(`Loaded salary slip for ${data.periodName}`);
+        }
+
+        // Download PDF trigger
+        function downloadPDF() {
+            showToast("Opening print dialog formatted for PDF export...");
+            setTimeout(() => {
+                window.print();
+            }, 600);
+        }
+
+        // Email Modal Controls
+        function sendEmailModal() {
+            document.getElementById('emailModal').classList.remove('hidden');
+            document.getElementById('emailModal').classList.add('flex');
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.add('hidden');
+            document.getElementById('emailModal').classList.remove('flex');
+        }
+
+        function handleSendEmail(e) {
+            e.preventDefault();
+            closeEmailModal();
+            showToast("Salary slip sent successfully to employee email!");
+        }
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

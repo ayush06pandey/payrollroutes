@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Employee Dashboard - Apex Payroll</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar-item {
+            transition: 0.2s;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen">
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <aside class="fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 p-5">
+
+        <div class="mb-10">
+            <h1 class="text-2xl font-bold text-white">
+                Apex Payroll
+            </h1>
+
+            <p class="text-slate-400 text-sm mt-1">
+                Employee Portal
+            </p>
+        </div>
+
+        <nav class="space-y-2">
+
+            <a href="empolyee.html"
+               class="sidebar-item block rounded-lg px-4 py-3 bg-slate-800">
+                🏠 Dashboard
+            </a>
+
+            <a href="attandtimeoff.html"
+               class="sidebar-item block rounded-lg px-4 py-3 text-slate-300">
+                🕒 Attendance & Time Off
+            </a>
+
+            <a href="salaryslip.html"
+               class="sidebar-item block rounded-lg px-4 py-3 text-slate-300">
+                💰 Salary Slip
+            </a>
+
+            <a href="taxnbenefit.html"
+               class="sidebar-item block rounded-lg px-4 py-3 text-slate-300">
+                📄 Tax & Benefits
+            </a>
+
+        </nav>
+
+        <div class="absolute bottom-5 left-5 right-5">
+
+            <button
+                onclick="logout()"
+                class="w-full bg-red-600 hover:bg-red-700 rounded-lg px-4 py-3 font-semibold">
+                Logout
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =========================
+         MAIN CONTENT
+    ========================== -->
+
+    <main class="ml-64 p-8">
+
+        <!-- Header -->
+
+        <div class="flex justify-between items-center mb-8">
+
+            <div>
+
+                <h1 class="text-3xl font-bold">
+                    Welcome back,
+                    <span id="employeeName">Employee</span> 👋
+                </h1>
+
+                <p class="text-slate-400 mt-2">
+                    Here's what's happening with your payroll account.
+                </p>
+
+            </div>
+
+            <div class="text-right">
+
+                <p class="text-slate-400 text-sm">
+                    Employee ID
+                </p>
+
+                <p id="employeeId"
+                   class="font-semibold text-lg">
+                    Employee
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             PROFILE CARD
+        ========================== -->
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+            <div class="glass border border-slate-800 rounded-2xl p-6">
+
+                <p class="text-slate-400 text-sm">
+                    Employee
+                </p>
+
+                <h2 id="profileName"
+                    class="text-2xl font-bold mt-2">
+                    Employee
+                </h2>
+
+                <p class="text-slate-400 mt-2">
+                    Employee Portal
+                </p>
+
+            </div>
+
+
+            <!-- Attendance Status -->
+
+            <div class="glass border border-slate-800 rounded-2xl p-6">
+
+                <p class="text-slate-400 text-sm mb-3">
+                    Current Shift
+                </p>
+
+                <div id="shiftStatusBadge"
+                     class="inline-flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-full text-sm">
+
+                    <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+
+                    Shift Ended
+
+                </div>
+
+                <div class="mt-5">
+
+                    <p class="text-slate-400 text-sm">
+                        Shift Duration
+                    </p>
+
+                    <p id="shiftTimer"
+                       class="text-2xl font-bold mt-1">
+                        00h 00m 00s
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Clock Button -->
+
+            <div class="glass border border-slate-800 rounded-2xl p-6">
+
+                <p class="text-slate-400 text-sm mb-4">
+                    Attendance
+                </p>
+
+                <button
+                    id="clockBtn"
+                    onclick="toggleClockState()"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl px-5 py-4 font-bold transition">
+
+                    <span id="clockBtnText">
+                        Clock In Now
+                    </span>
+
+                </button>
+
+                <p id="attendanceMessage"
+                   class="text-sm text-slate-400 mt-3 text-center">
+                    Ready to start your shift.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             STAT CARDS
+        ========================== -->
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+
+                <p class="text-slate-400 text-sm">
+                    Monthly Salary
+                </p>
+
+                <h2 class="text-3xl font-bold mt-2">
+                    ₹45,000
+                </h2>
+
+                <p class="text-emerald-400 text-sm mt-2">
+                    Current month
+                </p>
+
+            </div>
+
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+
+                <p class="text-slate-400 text-sm">
+                    Attendance
+                </p>
+
+                <h2 class="text-3xl font-bold mt-2">
+                    96%
+                </h2>
+
+                <p class="text-emerald-400 text-sm mt-2">
+                    This month
+                </p>
+
+            </div>
+
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+
+                <p class="text-slate-400 text-sm">
+                    Leave Balance
+                </p>
+
+                <h2 class="text-3xl font-bold mt-2">
+                    12 Days
+                </h2>
+
+                <p class="text-slate-400 text-sm mt-2">
+                    Remaining
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             EARNINGS CHART
+        ========================== -->
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-6">
+
+            <div class="flex justify-between items-center mb-6">
+
+                <div>
+
+                    <h2 class="text-xl font-bold">
+                        Earnings Overview
+                    </h2>
+
+                    <p class="text-slate-400 text-sm mt-1">
+                        Monthly salary overview
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="h-72">
+
+                <canvas id="earningsChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             QUICK ACTIONS
+        ========================== -->
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+
+            <h2 class="text-xl font-bold mb-5">
+                Quick Actions
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                <a href="salaryslip.html"
+                   class="bg-slate-800 hover:bg-slate-700 rounded-xl p-5 transition">
+
+                    <div class="text-2xl mb-2">
+                        💰
+                    </div>
+
+                    <h3 class="font-semibold">
+                        Salary Slip
+                    </h3>
+
+                    <p class="text-slate-400 text-sm mt-1">
+                        View your salary
+                    </p>
+
+                </a>
+
+
+                <a href="attandtimeoff.html"
+                   class="bg-slate-800 hover:bg-slate-700 rounded-xl p-5 transition">
+
+                    <div class="text-2xl mb-2">
+                        🕒
+                    </div>
+
+                    <h3 class="font-semibold">
+                        Attendance
+                    </h3>
+
+                    <p class="text-slate-400 text-sm mt-1">
+                        View attendance
+                    </p>
+
+                </a>
+
+
+                <a href="taxnbenefit.html"
+                   class="bg-slate-800 hover:bg-slate-700 rounded-xl p-5 transition">
+
+                    <div class="text-2xl mb-2">
+                        📄
+                    </div>
+
+                    <h3 class="font-semibold">
+                        Tax & Benefits
+                    </h3>
+
+                    <p class="text-slate-400 text-sm mt-1">
+                        View benefits
+                    </p>
+
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             ATTENDANCE HISTORY
+        ========================== -->
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 mt-6">
+
+            <div class="flex justify-between items-center mb-5">
+
+                <div>
+                    <h2 class="text-xl font-bold">
+                        Attendance History
+                    </h2>
+
+                    <p class="text-slate-400 text-sm mt-1">
+                        Your recent attendance records
+                    </p>
+                </div>
+
+                <button
+                    onclick="loadAttendanceHistory()"
+                    class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg text-sm">
+                    Refresh
+                </button>
+
+            </div>
+
+
+            <div class="overflow-x-auto">
+
+                <table class="w-full text-left">
+
+                    <thead>
+
+                        <tr class="border-b border-slate-800 text-slate-400 text-sm">
+
+                            <th class="py-3 px-3">
+                                Date
+                            </th>
+
+                            <th class="py-3 px-3">
+                                Clock In
+                            </th>
+
+                            <th class="py-3 px-3">
+                                Clock Out
+                            </th>
+
+                            <th class="py-3 px-3">
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="attendanceHistory">
+
+                        <tr>
+                            <td
+                                colspan="4"
+                                class="text-center text-slate-400 py-6">
+                                Loading attendance history...
+                            </td>
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================== -->
+
+    <script>
+
+        /* =========================================
+           GLOBAL ATTENDANCE VARIABLES
+        ========================================= */
+
+        let isClockedIn = false;
+        let shiftSeconds = 0;
+
+
+        /* =========================================
+           PAGE LOAD
+        ========================================= */
+
+        window.onload = function () {
+
+            loadEmployeeData();
+
+            loadAttendanceStatus();
+
+            loadAttendanceHistory();
+
+            initEarningsChart();
+
+            startShiftTimer();
+
+        };
+
+
+        /* =========================================
+           LOAD EMPLOYEE DATA
+        ========================================= */
+
+        function loadEmployeeData() {
+
+            const token = localStorage.getItem("token");
+
+            const savedUser = localStorage.getItem("user");
+
+
+            if (!token || !savedUser) {
+
+                window.location.href = "loginpage.html";
+
+                return;
+            }
+
+
+            try {
+
+                const user = JSON.parse(savedUser);
+
+
+                document.getElementById("employeeName").innerText =
+                    user.name || "Employee";
+
+
+                document.getElementById("profileName").innerText =
+                    user.name || "Employee";
+
+
+                document.getElementById("employeeId").innerText =
+                    user.employee_id || "Employee";
+
+
+            } catch (error) {
+
+                console.error(
+                    "Employee data error:",
+                    error
+                );
+
+
+                localStorage.removeItem("token");
+
+                localStorage.removeItem("user");
+
+                window.location.href = "loginpage.html";
+
+            }
+
+        }
+
+
+        /* =========================================
+           LOAD ATTENDANCE STATUS FROM BACKEND
+        ========================================= */
+
+        async function loadAttendanceStatus() {
+
+            const token = localStorage.getItem("token");
+
+
+            if (!token) {
+
+                window.location.href = "loginpage.html";
+
+                return;
+            }
+
+
+            try {
+
+                const response = await fetch(
+                    "/api/attendance/status",
+                    {
+                        method: "GET",
+
+                        headers: {
+                            "Authorization":
+                                "Bearer " + token
+                        }
+                    }
+                );
+
+
+                const data = await response.json();
+
+
+                if (!response.ok) {
+
+                    console.error(
+                        data.message
+                    );
+
+                    return;
+                }
+
+
+                isClockedIn = data.clockedIn;
+
+
+                if (
+                    data.attendance &&
+                    data.attendance.clock_in
+                ) {
+
+                    const clockInTime =
+                        new Date(
+                            data.attendance.clock_in
+                                .replace(" ", "T")
+                        );
+
+
+                    const currentTime =
+                        new Date();
+
+
+                    shiftSeconds =
+                        Math.max(
+                            0,
+                            Math.floor(
+                                (
+                                    currentTime -
+                                    clockInTime
+                                ) / 1000
+                            )
+                        );
+
+                } else {
+
+                    shiftSeconds = 0;
+
+                }
+
+
+                updateClockUI();
+
+
+                updateShiftTimer();
+
+
+            } catch (error) {
+
+                console.error(
+                    "Attendance status error:",
+                    error
+                );
+
+            }
+
+        }
+        /* =========================================
+   LOAD ATTENDANCE HISTORY
+========================================= */
+
+async function loadAttendanceHistory() {
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        window.location.href = "loginpage.html";
+        return;
+    }
+
+    const historyTable =
+        document.getElementById("attendanceHistory");
+
+    if (!historyTable) {
+        console.error("Attendance history table not found.");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            "/api/attendance/history",
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+            historyTable.innerHTML = `
+                <tr>
+                    <td colspan="4"
+                        class="text-center text-red-400 py-6">
+                        ${data.message || "Unable to load history."}
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        if (!data.records || data.records.length === 0) {
+
+            historyTable.innerHTML = `
+                <tr>
+                    <td colspan="4"
+                        class="text-center text-slate-400 py-6">
+                        No attendance records found.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        historyTable.innerHTML = "";
+
+        data.records.forEach(record => {
+
+            const date = formatDate(record.clock_in);
+
+            const clockIn =
+                formatDateTime(record.clock_in);
+
+            const clockOut =
+                record.clock_out
+                    ? formatDateTime(record.clock_out)
+                    : "-";
+
+            const status =
+                record.status === "active"
+                    ? `<span class="text-emerald-400">Active</span>`
+                    : `<span class="text-slate-300">Completed</span>`;
+
+            historyTable.innerHTML += `
+                <tr class="border-b border-slate-800">
+
+                    <td class="py-3 px-3">
+                        ${date}
+                    </td>
+
+                    <td class="py-3 px-3">
+                        ${clockIn}
+                    </td>
+
+                    <td class="py-3 px-3">
+                        ${clockOut}
+                    </td>
+
+                    <td class="py-3 px-3">
+                        ${status}
+                    </td>
+
+                </tr>
+            `;
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Attendance history error:",
+            error
+        );
+
+        historyTable.innerHTML = `
+            <tr>
+                <td colspan="4"
+                    class="text-center text-red-400 py-6">
+                    Server connection failed.
+                </td>
+            </tr>
+        `;
+
+    }
+}
+
+
+/* =========================================
+   FORMAT DATE
+========================================= */
+
+function formatDate(dateString) {
+
+    if (!dateString) {
+        return "-";
+    }
+
+    const date =
+        new Date(
+            dateString.replace(" ", "T")
+        );
+
+    return date.toLocaleDateString(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        }
+    );
+}
+
+
+/* =========================================
+   FORMAT DATE + TIME
+========================================= */
+
+function formatDateTime(dateString) {
+
+    if (!dateString) {
+        return "-";
+    }
+
+    const date =
+        new Date(
+            dateString.replace(" ", "T")
+        );
+
+    return date.toLocaleTimeString(
+        "en-IN",
+        {
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+}
+
+
+        /* =========================================
+           UPDATE CLOCK BUTTON UI
+        ========================================= */
+
+        function updateClockUI() {
+
+            const clockBtn =
+                document.getElementById(
+                    "clockBtn"
+                );
+
+
+            const clockBtnText =
+                document.getElementById(
+                    "clockBtnText"
+                );
+
+
+            const statusBadge =
+                document.getElementById(
+                    "shiftStatusBadge"
+                );
+
+
+            const attendanceMessage =
+                document.getElementById(
+                    "attendanceMessage"
+                );
+
+
+            if (
+                !clockBtn ||
+                !clockBtnText ||
+                !statusBadge
+            ) {
+
+                console.error(
+                    "Clock elements not found."
+                );
+
+                return;
+            }
+
+
+            if (isClockedIn) {
+
+                clockBtnText.innerText =
+                    "Clock Out Now";
+
+
+                clockBtn.className =
+                    "w-full bg-red-600 hover:bg-red-700 rounded-xl px-5 py-4 font-bold transition";
+
+
+                statusBadge.innerHTML =
+                    `
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Clocked In (Active Shift)
+                    `;
+
+
+                if (attendanceMessage) {
+
+                    attendanceMessage.innerText =
+                        "Your shift is currently active.";
+
+                }
+
+            } else {
+
+                clockBtnText.innerText =
+                    "Clock In Now";
+
+
+                clockBtn.className =
+                    "w-full bg-emerald-600 hover:bg-emerald-700 rounded-xl px-5 py-4 font-bold transition";
+
+
+                statusBadge.innerHTML =
+                    `
+                    <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                    Shift Ended
+                    `;
+
+
+                if (attendanceMessage) {
+
+                    attendanceMessage.innerText =
+                        "Ready to start your shift.";
+
+                }
+
+            }
+
+        }
+
+
+        /* =========================================
+           CLOCK IN / CLOCK OUT
+        ========================================= */
+
+        async function toggleClockState() {
+
+            const token =
+                localStorage.getItem(
+                    "token"
+                );
+
+
+            if (!token) {
+
+                window.location.href =
+                    "loginpage.html";
+
+                return;
+            }
+
+
+            const endpoint =
+                isClockedIn
+                    ? "/api/attendance/clock-out"
+                    : "/api/attendance/clock-in";
+
+
+            const clockBtn =
+                document.getElementById(
+                    "clockBtn"
+                );
+
+
+            const clockBtnText =
+                document.getElementById(
+                    "clockBtnText"
+                );
+
+
+            try {
+
+                if (clockBtn) {
+
+                    clockBtn.disabled = true;
+
+                }
+
+
+                if (clockBtnText) {
+
+                    clockBtnText.innerText =
+                        "Processing...";
+
+                }
+
+
+                const response =
+                    await fetch(
+                        endpoint,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Authorization":
+                                    "Bearer " + token,
+
+                                "Content-Type":
+                                    "application/json"
+                            }
+                        }
+                    );
+
+
+                const data =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    alert(
+                        data.message ||
+                        "Attendance update failed."
+                    );
+
+
+                    updateClockUI();
+
+                    return;
+                }
+
+
+                if (data.attendance) {
+
+                    isClockedIn =
+                        data.attendance.status ===
+                        "active";
+
+                }
+
+
+                if (isClockedIn) {
+
+                    shiftSeconds = 0;
+
+                } else {
+
+                    shiftSeconds = 0;
+
+                }
+
+
+                updateClockUI();
+
+                updateShiftTimer();
+
+
+                console.log(
+                    data.message
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Clock error:",
+                    error
+                );
+
+
+                alert(
+                    "Server connection failed."
+                );
+
+
+            } finally {
+
+                if (clockBtn) {
+
+                    clockBtn.disabled = false;
+
+                }
+
+                updateClockUI();
+
+            }
+
+        }
+
+
+        /* =========================================
+           SHIFT TIMER
+        ========================================= */
+
+        function startShiftTimer() {
+
+            setInterval(
+                function () {
+
+                    if (!isClockedIn) {
+
+                        return;
+
+                    }
+
+
+                    shiftSeconds++;
+
+
+                    updateShiftTimer();
+
+                },
+                1000
+            );
+
+        }
+
+
+        function updateShiftTimer() {
+
+            const timer =
+                document.getElementById(
+                    "shiftTimer"
+                );
+
+
+            if (!timer) {
+
+                return;
+
+            }
+
+
+            const hrs =
+                String(
+                    Math.floor(
+                        shiftSeconds / 3600
+                    )
+                ).padStart(
+                    2,
+                    "0"
+                );
+
+
+            const mins =
+                String(
+                    Math.floor(
+                        (
+                            shiftSeconds % 3600
+                        ) / 60
+                    )
+                ).padStart(
+                    2,
+                    "0"
+                );
+
+
+            const secs =
+                String(
+                    shiftSeconds % 60
+                ).padStart(
+                    2,
+                    "0"
+                );
+
+
+            timer.innerText =
+                `${hrs}h ${mins}m ${secs}s`;
+
+        }
+
+
+        /* =========================================
+           EARNINGS CHART
+        ========================================= */
+
+        function initEarningsChart() {
+
+            const canvas =
+                document.getElementById(
+                    "earningsChart"
+                );
+
+
+            if (!canvas) {
+
+                return;
+
+            }
+
+
+            new Chart(
+                canvas,
+                {
+                    type: "line",
+
+                    data: {
+
+                        labels: [
+                            "Apr",
+                            "May",
+                            "Jun",
+                            "Jul",
+                            "Aug",
+                            "Sep"
+                        ],
+
+                        datasets: [
+
+                            {
+                                label:
+                                    "Monthly Earnings",
+
+                                data: [
+                                    38000,
+                                    40000,
+                                    42000,
+                                    43000,
+                                    44000,
+                                    45000
+                                ],
+
+                                borderWidth: 2,
+
+                                tension: 0.4,
+
+                                fill: false
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        plugins: {
+
+                            legend: {
+                                display: true
+                            }
+
+                        },
+
+                        scales: {
+
+                            y: {
+
+                                beginAtZero: false
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* =========================================
+           LOGOUT
+        ========================================= */
+
+        function logout() {
+
+            localStorage.removeItem(
+                "token"
+            );
+
+            localStorage.removeItem(
+                "user"
+            );
+
+
+            window.location.href =
+                "loginpage.html";
+
+        }
+        </script>
+
+</body>
+</html>

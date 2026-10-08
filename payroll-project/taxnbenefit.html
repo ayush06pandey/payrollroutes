@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tax & Benefits Overview - HR & Payroll Portal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#0B0F19',
+                        cardBg: '#1E293B',
+                        cardBorder: '#334155',
+                        cyanGlow: '#06B6D4',
+                        purpleGlow: '#8B5CF6',
+                        emeraldGlow: '#10B981',
+                        roseGlow: '#F43F5E',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Inter Font -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0F19;
+            color: #F8FAFC;
+        }
+        .font-mono-num {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0F19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-hover:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.6), 0 0 20px -4px rgba(139, 92, 246, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 antialiased">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Header / Navigation Bar -->
+        <header class="glass-card p-4 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-3">
+                <a href="hrdashboard.html" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-all flex items-center justify-center" aria-label="Back to HR dashboard" title="Back to HR dashboard">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-purple-400"></i>
+                        Tax & Benefits Overview
+                    </h1>
+                    <p class="text-xs text-slate-400">Manage withholding, pre-tax savings, health plans, and tax forms</p>
+                </div>
+            </div>
+
+            <!-- Controls: Search, Year Switcher, Actions -->
+            <div class="flex flex-wrap items-center gap-3">
+                
+                <!-- Search Bar -->
+                <div class="relative">
+                    <input type="text" id="globalSearch" onkeyup="filterTable()" placeholder="Search tax/benefit item..." class="bg-slate-900 text-xs text-slate-200 border border-slate-700 rounded-xl pl-8 pr-3 py-2 w-44 md:w-56 focus:outline-none focus:border-purple-500 transition-all">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
+                </div>
+
+                <!-- Tax Year Selector -->
+                <div class="flex items-center space-x-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-700">
+                    <i class="fa-solid fa-calendar text-purple-400 text-xs"></i>
+                    <label for="taxYearSelect" class="text-xs text-slate-400 font-medium hidden sm:inline">Tax Year:</label>
+                    <select id="taxYearSelect" onchange="switchTaxYear(this.value)" class="bg-transparent text-xs font-semibold text-purple-300 focus:outline-none cursor-pointer">
+                        <option value="2026" selected>2026 (Current)</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                    </select>
+                </div>
+
+                <!-- Export Documents Dropdown / Button -->
+                <button onclick="downloadW2()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-purple-600/20 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-file-arrow-down"></i>
+                    <span class="hidden sm:inline">Download W-2</span>
+                </button>
+
+                <!-- Profile Badge -->
+                <div class="flex items-center space-x-2 pl-2 border-l border-slate-800">
+                    <img src="https://placehold.co/100x100/1e293b/8b5cf6?text=AM" alt="Alex Morgan" class="w-8 h-8 rounded-xl border border-purple-500/40">
+                    <span class="text-xs font-bold text-slate-200 hidden xl:inline">Alex Morgan</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Key Metrics Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Metric 1: Total YTD Tax Deductions -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">YTD Tax Deductions</span>
+                    <div class="p-2 bg-purple-500/10 text-purple-400 rounded-xl border border-purple-500/20">
+                        <i class="fa-solid fa-receipt text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight font-mono-num" id="kpiTaxVal">₹14,220.00</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">Fed: <strong class="text-slate-200">₹9.4k</strong> &bull; State: <strong class="text-slate-200">₹4.8k</strong></span>
+                        <button onclick="openW4Modal()" class="text-purple-400 hover:text-purple-300 font-semibold text-[11px] underline">W-4</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 2: Active Benefits Enrollment -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Enrollment</span>
+                    <div class="p-2 bg-cyan-500/10 text-cyan-400 rounded-xl border border-cyan-500/20">
+                        <i class="fa-solid fa-heart-pulse text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight">4 Active Plans</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">Full Coverage</span>
+                        <button onclick="openEnrollmentModal()" class="text-cyan-400 hover:text-cyan-300 font-semibold text-[11px] underline">Modify</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 3: Employer YTD Match -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Employer 401(k) Match</span>
+                    <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                        <i class="fa-solid fa-piggy-bank text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight font-mono-num" id="kpiMatchVal">₹4,250.00</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">Matching Rate: <strong class="text-emerald-400">100% up to 5%</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 4: Projected Pre-Tax Savings -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pre-Tax Savings YTD</span>
+                    <div class="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                        <i class="fa-solid fa-scale-balanced text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight font-mono-num" id="kpiSavingsVal">₹2,840.00</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">Taxable Income Reduced</span>
+                        <span class="text-amber-400 font-medium text-[11px]">Estimated</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Charts Section: Line/Bar Trends + Allocation Donut -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Chart (2 Cols): Tax vs Pre-Tax Contributions Trend -->
+            <div class="lg:col-span-2 glass-card p-5 rounded-2xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="font-bold text-slate-100 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-purple-400"></i>
+                            Monthly Tax Withholding vs Benefits Pre-Tax Contributions
+                        </h2>
+                        <p class="text-xs text-slate-400">Comparison of monthly tax deductions and pre-tax benefit contributions</p>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center gap-1.5 text-slate-300">
+                            <span class="w-3 h-3 rounded bg-purple-500 inline-block"></span> Taxes
+                        </span>
+                        <span class="flex items-center gap-1.5 text-slate-300">
+                            <span class="w-3 h-3 rounded bg-cyan-400 inline-block"></span> Pre-Tax Benefits
+                        </span>
+                    </div>
+                </div>
+                <div class="relative h-64 w-full">
+                    <canvas id="taxTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Right Chart (1 Col): Benefits Allocation Donut -->
+            <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+                <div>
+                    <h2 class="font-bold text-slate-100 text-base flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+                        Benefit Contributions Allocation
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4">Breakdown of annual pre-tax payroll deductions</p>
+                </div>
+                <div class="relative h-52 w-full flex items-center justify-center">
+                    <canvas id="allocationDonutChart"></canvas>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between items-center">
+                    <span>Total Annual Pre-tax: <strong class="text-slate-200 font-mono-num">₹9,400</strong></span>
+                    <span class="text-cyan-400 font-semibold">5 Active Benefit Categories</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Active Benefits Plans Grid -->
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="font-bold text-slate-100 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-briefcase text-emerald-400"></i>
+                        Enrolled Benefits & Insurance Plans
+                    </h2>
+                    <p class="text-xs text-slate-400">Your current coverage, premium contributions, and employer matches</p>
+                </div>
+                <button onclick="openEnrollmentModal()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 rounded-xl text-xs font-semibold transition-all">
+                    <i class="fa-solid fa-sliders mr-1"></i> Adjust Coverage
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Plan 1: Health / Medical -->
+                <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between border-t-2 border-t-cyan-400">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">Medical PPO</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        </div>
+                        <h3 class="font-bold text-slate-100 text-sm">BlueCross Premier Health</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Coverage: Employee + Family</p>
+                        
+                        <div class="mt-4 space-y-1.5 text-xs">
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Your Cost / mo:</span>
+                                <span class="font-mono-num font-semibold text-slate-200">₹240.00</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Employer Paid:</span>
+                                <span class="font-mono-num text-emerald-400">₹650.00/mo</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="showPlanDetails('BlueCross Premier Health', '₹240.00/mo', '₹650.00/mo', 'PPO-902183')" class="mt-5 w-full py-2 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 rounded-xl border border-slate-700 transition-all">
+                        View Coverage Details
+                    </button>
+                </div>
+
+                <!-- Plan 2: 401(k) Retirement -->
+                <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between border-t-2 border-t-purple-400">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-md border border-purple-500/20">Retirement 401(k)</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        </div>
+                        <h3 class="font-bold text-slate-100 text-sm">Fidelity Growth Portfolio</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Pre-Tax Contribution: 8.0%</p>
+                        
+                        <div class="mt-4 space-y-1.5 text-xs">
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Your Deduction:</span>
+                                <span class="font-mono-num font-semibold text-slate-200">₹700.00/mo</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Company Match:</span>
+                                <span class="font-mono-num text-purple-400">₹437.50/mo</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="openEnrollmentModal()" class="mt-5 w-full py-2 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-purple-300 rounded-xl border border-slate-700 transition-all">
+                        Change Contribution %
+                    </button>
+                </div>
+
+                <!-- Plan 3: Health Savings Account (HSA) -->
+                <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between border-t-2 border-t-emerald-400">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">HSA Account</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        </div>
+                        <h3 class="font-bold text-slate-100 text-sm">Optum Health HSA</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Pre-Tax Medical Savings</p>
+                        
+                        <div class="mt-4 space-y-1.5 text-xs">
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Your Contribution:</span>
+                                <span class="font-mono-num font-semibold text-slate-200">₹150.00/mo</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Employer Seed:</span>
+                                <span class="font-mono-num text-emerald-400">₹500.00/yr</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="showPlanDetails('Optum Health HSA', '₹150.00/mo', '₹500.00/yr', 'HSA-44021')" class="mt-5 w-full py-2 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 rounded-xl border border-slate-700 transition-all">
+                        View HSA Account
+                    </button>
+                </div>
+
+                <!-- Plan 4: Dental & Vision Package -->
+                <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between border-t-2 border-t-amber-400">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">Dental & Vision</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        </div>
+                        <h3 class="font-bold text-slate-100 text-sm">MetLife Preferred Care</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Full Preventative Covered</p>
+                        
+                        <div class="mt-4 space-y-1.5 text-xs">
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Your Premium:</span>
+                                <span class="font-mono-num font-semibold text-slate-200">₹45.00/mo</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span class="text-slate-400">Employer Paid:</span>
+                                <span class="font-mono-num text-amber-400">₹80.00/mo</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="showPlanDetails('MetLife Preferred Care', '₹45.00/mo', '₹80.00/mo', 'DEN-88219')" class="mt-5 w-full py-2 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-300 rounded-xl border border-slate-700 transition-all">
+                        View Coverage Details
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Detailed Tax Withholding & Benefits Breakdown Table -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+            
+            <div class="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="font-bold text-slate-100 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-purple-400"></i>
+                        Itemized Tax Withholdings & Deductions Breakdown
+                    </h2>
+                    <p class="text-xs text-slate-400">Detailed list of pre-tax deductions, federal/state tax withholdings, and employer contributions</p>
+                </div>
+
+                <!-- Category Filters -->
+                <div class="flex items-center space-x-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start sm:self-auto text-xs">
+                    <button onclick="filterCategory('All')" class="cat-btn bg-purple-600 text-white px-3 py-1 rounded-lg font-medium transition-all">All</button>
+                    <button onclick="filterCategory('Taxes')" class="cat-btn hover:text-white text-slate-400 px-3 py-1 rounded-lg font-medium transition-all">Taxes</button>
+                    <button onclick="filterCategory('Health')" class="cat-btn hover:text-white text-slate-400 px-3 py-1 rounded-lg font-medium transition-all">Health</button>
+                    <button onclick="filterCategory('Retirement')" class="cat-btn hover:text-white text-slate-400 px-3 py-1 rounded-lg font-medium transition-all">Retirement</button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300" id="deductionsTable">
+                    <thead class="bg-slate-900/90 uppercase text-[10px] text-slate-400 font-bold tracking-wider border-b border-slate-800">
+                        <tr>
+                            <th scope="col" class="py-3.5 px-5">Tax / Benefit Item</th>
+                            <th scope="col" class="py-3.5 px-4">Category</th>
+                            <th scope="col" class="py-3.5 px-4">Tax Treatment</th>
+                            <th scope="col" class="py-3.5 px-4">Per Pay Period</th>
+                            <th scope="col" class="py-3.5 px-4">YTD Total</th>
+                            <th scope="col" class="py-3.5 px-4">Employer Match YTD</th>
+                            <th scope="col" class="py-3.5 px-4 text-center">Status / Form</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60" id="tableBody">
+                        
+                        <!-- Row 1 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-cat="Taxes">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Federal Income Tax (FIT)</div>
+                                <div class="text-[10px] text-slate-400">W-4 Married Filing Jointly</div>
+                            </td>
+                            <td class="py-3.5 px-4"><span class="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">Taxes</span></td>
+                            <td class="py-3.5 px-4 text-slate-400">Post-Tax Withholding</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">₹525.00</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-purple-400">₹9,450.00</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">—</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="openW4Modal()" class="px-2.5 py-1 bg-slate-900 hover:bg-purple-600 hover:text-white text-slate-300 rounded-lg border border-slate-700 transition-all text-[11px]">Edit W-4</button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 2 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-cat="Taxes">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Social Security Tax (OASDI)</div>
+                                <div class="text-[10px] text-slate-400">6.2% Statutory Tax</div>
+                            </td>
+                            <td class="py-3.5 px-4"><span class="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">Taxes</span></td>
+                            <td class="py-3.5 px-4 text-slate-400">FICA Statutory</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">₹217.00</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-purple-400">₹3,906.00</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-400">₹3,906.00</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">Active</span>
+                            </td>
+                        </tr>
+
+                        <!-- Row 3 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-cat="Taxes">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Medicare Tax</div>
+                                <div class="text-[10px] text-slate-400">1.45% Statutory Tax</div>
+                            </td>
+                            <td class="py-3.5 px-4"><span class="bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">Taxes</span></td>
+                            <td class="py-3.5 px-4 text-slate-400">FICA Statutory</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">₹50.75</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-purple-400">₹913.50</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-400">₹913.50</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">Active</span>
+                            </td>
+                        </tr>
+
+                        <!-- Row 4 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-cat="Retirement">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">401(k) Pre-Tax Retirement Savings</div>
+                                <div class="text-[10px] text-slate-400">Fidelity Investments</div>
+                            </td>
+                            <td class="py-3.5 px-4"><span class="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">Retirement</span></td>
+                            <td class="py-3.5 px-4 text-emerald-400 font-semibold">Pre-Tax Exempt</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">₹350.00</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-cyan-400">₹6,300.00</td>
+                            <td class="py-3.5 px-4 font-mono-num text-emerald-400 font-bold">₹4,250.00</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="openEnrollmentModal()" class="px-2.5 py-1 bg-slate-900 hover:bg-cyan-600 hover:text-white text-slate-300 rounded-lg border border-slate-700 transition-all text-[11px]">Adjust %</button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 5 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-cat="Health">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Medical Insurance Premium (BlueCross)</div>
+                                <div class="text-[10px] text-slate-400">Section 125 Cafeteria Plan</div>
+                            </td>
+                            <td class="py-3.5 px-4"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">Health</span></td>
+                            <td class="py-3.5 px-4 text-emerald-400 font-semibold">Pre-Tax Exempt</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">₹120.00</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-emerald-400">₹2,160.00</td>
+                            <td class="py-3.5 px-4 font-mono-num text-emerald-400">₹5,850.00</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">Enrolled</span>
+                            </td>
+                        </tr>
+
+                        <!-- Row 6 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-cat="Health">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Health Savings Account (HSA)</div>
+                                <div class="text-[10px] text-slate-400">Optum Bank HSA</div>
+                            </td>
+                            <td class="py-3.5 px-4"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-2 py-0.5 rounded-full">Health</span></td>
+                            <td class="py-3.5 px-4 text-emerald-400 font-semibold">Pre-Tax Exempt</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">₹75.00</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-emerald-400">₹1,350.00</td>
+                            <td class="py-3.5 px-4 font-mono-num text-emerald-400">₹500.00</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full">Enrolled</span>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Modal 1: Update W-4 Tax Status -->
+    <div id="w4Modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-800 relative">
+            <button onclick="closeW4Modal()" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-5">
+                <div class="p-3 bg-purple-500/10 text-purple-400 rounded-2xl border border-purple-500/20">
+                    <i class="fa-solid fa-file-pen text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-white text-lg">Update W-4 Tax Withholding</h3>
+                    <p class="text-xs text-slate-400">Federal Tax Filing Adjustments for Tax Year 2026</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleW4Submit(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Filing Status</label>
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500">
+                        <option value="married" selected>Married Filing Jointly</option>
+                        <option value="single">Single or Married Filing Separately</option>
+                        <option value="head">Head of Household</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1.5">Multiple Jobs / Spouse Works</label>
+                        <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500">
+                            <option value="no">No</option>
+                            <option value="yes" selected>Yes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1.5">Dependents Amount (₹)</label>
+                        <input type="number" value="2000" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Extra Withholding Per Pay Period (₹)</label>
+                    <input type="number" value="50" placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <div class="p-3 bg-purple-500/10 rounded-xl border border-purple-500/20 text-slate-300 text-[11px]">
+                    <i class="fa-solid fa-circle-info text-purple-400 mr-1"></i> Changes will take effect starting next payroll cycle (Oct 15, 2026).
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeW4Modal()" class="px-4 py-2.5 rounded-xl font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30">Submit W-4 Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Adjust Benefits & 401(k) -->
+    <div id="enrollmentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-800 relative">
+            <button onclick="closeEnrollmentModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-5">
+                <div class="p-3 bg-cyan-500/10 text-cyan-400 rounded-2xl border border-cyan-500/20">
+                    <i class="fa-solid fa-sliders text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-white text-lg">Adjust Pre-Tax Benefits & 401(k)</h3>
+                    <p class="text-xs text-slate-400">Modify contribution percentages and plan selections</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleEnrollmentSubmit(event)" class="space-y-4 text-xs">
+                <div>
+                    <div class="flex justify-between font-semibold text-slate-300 mb-1.5">
+                        <span>401(k) Contribution Rate</span>
+                        <span class="text-cyan-400 font-bold" id="pctVal">8.0%</span>
+                    </div>
+                    <input type="range" min="1" max="20" step="0.5" value="8.0" oninput="document.getElementById('pctVal').innerText = this.value + '%'" class="w-full accent-cyan-400 bg-slate-900 rounded-lg cursor-pointer">
+                    <p class="text-[10px] text-slate-400 mt-1">Employer matches 100% up to 5% (₹437.50/mo max match)</p>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Health Plan Selection</label>
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500">
+                        <option value="ppo">BlueCross Premier PPO (₹240/mo)</option>
+                        <option value="hdhp">High Deductible Health Plan HDHP (₹110/mo)</option>
+                        <option value="kaiser">Kaiser Permanente HMO (₹190/mo)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">HSA Monthly Pre-Tax Contribution (₹)</label>
+                    <input type="number" value="150" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500">
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeEnrollmentModal()" class="px-4 py-2.5 rounded-xl font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/30">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div id="toastIcon" class="p-1.5 bg-purple-500/20 text-purple-400 rounded-xl">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <span id="toastMsg">Notification message</span>
+    </div>
+
+    <script>
+        let trendChartInstance, donutChartInstance;
+
+        window.onload = function() {
+            initCharts();
+        };
+
+        // Initialize Chart.js Graphs
+        function initCharts() {
+            // Chart 1: Line / Stacked Trend Chart
+            const ctx1 = document.getElementById('taxTrendChart').getContext('2d');
+            trendChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                    datasets: [
+                        {
+                            label: 'Taxes Withheld (₹)',
+                            data: [1580, 1580, 1580, 1580, 1580, 1580, 1580, 1580, 1580],
+                            backgroundColor: '#8b5cf6',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Pre-Tax Benefits (₹)',
+                            data: [545, 545, 545, 545, 545, 545, 545, 545, 545],
+                            backgroundColor: '#06b6d4',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+                        y: { grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#94a3b8', callback: v => '₹' + v } }
+                    }
+                }
+            });
+
+            // Chart 2: Donut Allocation Chart
+            const ctx2 = document.getElementById('allocationDonutChart').getContext('2d');
+            donutChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['401(k) Retirement', 'Medical PPO', 'HSA Savings', 'Dental & Vision', 'Life Insurance'],
+                    datasets: [{
+                        data: [4200, 2880, 1800, 540, 180],
+                        backgroundColor: ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#cbd5e1', font: { size: 10 }, boxWidth: 12 }
+                        }
+                    },
+                    cutout: '68%'
+                }
+            });
+        }
+
+        // Switch Tax Year Handler
+        function switchTaxYear(year) {
+            showToast(`Loaded tax & benefits data for year ${year}`);
+            if (year === '2025') {
+                document.getElementById('kpiTaxVal').innerText = '₹18,960.00';
+                document.getElementById('kpiMatchVal').innerText = '₹5,100.00';
+                document.getElementById('kpiSavingsVal').innerText = '₹3,400.00';
+            } else if (year === '2024') {
+                document.getElementById('kpiTaxVal').innerText = '₹17,800.00';
+                document.getElementById('kpiMatchVal').innerText = '₹4,800.00';
+                document.getElementById('kpiSavingsVal').innerText = '₹3,100.00';
+            } else {
+                document.getElementById('kpiTaxVal').innerText = '₹14,220.00';
+                document.getElementById('kpiMatchVal').innerText = '₹4,250.00';
+                document.getElementById('kpiSavingsVal').innerText = '₹2,840.00';
+            }
+        }
+
+        // Search Filter for Table
+        function filterTable() {
+            const query = document.getElementById('globalSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        // Category Filter Tabs
+        function filterCategory(cat) {
+            const buttons = document.querySelectorAll('.cat-btn');
+            buttons.forEach(b => {
+                if(b.innerText === cat) {
+                    b.className = "cat-btn bg-purple-600 text-white px-3 py-1 rounded-lg font-medium transition-all";
+                } else {
+                    b.className = "cat-btn hover:text-white text-slate-400 px-3 py-1 rounded-lg font-medium transition-all";
+                }
+            });
+
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(row => {
+                if (cat === 'All' || row.getAttribute('data-cat') === cat) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // Modals Toggle
+        function openW4Modal() {
+            document.getElementById('w4Modal').classList.remove('hidden');
+            document.getElementById('w4Modal').classList.add('flex');
+        }
+        function closeW4Modal() {
+            document.getElementById('w4Modal').classList.add('hidden');
+            document.getElementById('w4Modal').classList.remove('flex');
+        }
+        function handleW4Submit(e) {
+            e.preventDefault();
+            closeW4Modal();
+            showToast("W-4 Tax Withholding details updated successfully!");
+        }
+
+        function openEnrollmentModal() {
+            document.getElementById('enrollmentModal').classList.remove('hidden');
+            document.getElementById('enrollmentModal').classList.add('flex');
+        }
+        function closeEnrollmentModal() {
+            document.getElementById('enrollmentModal').classList.add('hidden');
+            document.getElementById('enrollmentModal').classList.remove('flex');
+        }
+        function handleEnrollmentSubmit(e) {
+            e.preventDefault();
+            closeEnrollmentModal();
+            showToast("Benefit plan adjustments saved for next pay cycle!");
+        }
+
+        function downloadW2() {
+            showToast("Generating official W-2 Tax Statement PDF...");
+        }
+
+        function showPlanDetails(name, empCost, compMatch, policyNo) {
+            showToast(`${name} (${policyNo}): Employee ${empCost}, Employer ${compMatch}`);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance & Time Tracking - HR & Payroll Portal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#0B0F19',
+                        cardBg: '#1E293B',
+                        cardBorder: '#334155',
+                        cyanGlow: '#06B6D4',
+                        indigoGlow: '#6366F1',
+                        violetGlow: '#8B5CF6',
+                        emeraldGlow: '#10B981',
+                        amberGlow: '#F59E0B',
+                        roseGlow: '#F43F5E'
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0B0F19;
+            color: #F8FAFC;
+        }
+        .font-mono-num {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0F19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-hover:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.6), 0 0 20px -4px rgba(99, 102, 241, 0.2);
+        }
+        .pulse-glow {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+            animation: pulse-border 2s infinite;
+        }
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(16, 185, 129, 0.8); }
+            50% { border-color: rgba(16, 185, 129, 0.3); }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Top Header & Navigation Bar -->
+        <header class="glass-card p-4 md:p-5 rounded-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <a href="hrdashboard.html" aria-label="Back to HR dashboard" title="Back to HR dashboard" class="p-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-800 transition-all flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </a>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i>
+                        Attendance & Time Tracking
+                    </h1>
+                    <p class="text-xs text-slate-400">Track real-time hours, log shifts, manage break time, and submit punch adjustments</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Date Range Filter -->
+                <div class="flex items-center space-x-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+                    <i class="fa-solid fa-calendar-days text-indigo-400 text-xs"></i>
+                    <label for="dateRangeSelect" class="text-xs text-slate-400 font-medium hidden sm:inline">Range:</label>
+                    <select id="dateRangeSelect" onchange="handleRangeChange(this.value)" class="bg-transparent text-xs font-semibold text-indigo-300 focus:outline-none cursor-pointer">
+                        <option value="today">Today (Sep 26)</option>
+                        <option value="this_week" selected>This Week (Sep 21 - Sep 27)</option>
+                        <option value="this_month">This Month (September 2026)</option>
+                        <option value="custom">Custom Range...</option>
+                    </select>
+                </div>
+
+                <!-- Missing Punch Button -->
+                <button onclick="openPunchModal()" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-500/30 hover:border-amber-500/60 rounded-xl text-xs font-semibold transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature"></i>
+                    <span>Request Missing Punch</span>
+                </button>
+
+                <!-- Shift Request Button -->
+                <button onclick="openShiftModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-plus"></i>
+                    <span>Request Shift Change</span>
+                </button>
+
+                <!-- User Profile Badge -->
+                <div class="flex items-center space-x-2 pl-2 border-l border-slate-800">
+                    <img src="https://placehold.co/100x100/1e293b/6366f1?text=AM" alt="Alex Morgan" class="w-8 h-8 rounded-xl border border-indigo-500/40">
+                    <div class="hidden xl:block text-left">
+                        <div class="text-xs font-bold text-slate-200">Alex Morgan</div>
+                        <div class="text-[10px] text-slate-400">Software Engineer</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Live Clock & Attendance Punch Banner -->
+        <div class="glass-card p-6 rounded-2xl relative overflow-hidden border-l-4 border-l-emerald-500">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
+                
+                <!-- Left: Digital Live Clock & Status -->
+                <div class="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+                    <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 shadow-inner flex flex-col items-center justify-center min-w-[170px]">
+                        <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">Live System Time</span>
+                        <div id="liveClock" class="text-2xl font-extrabold text-white font-mono-num tracking-tight my-0.5">04:27:33 PM</div>
+                        <span id="liveDate" class="text-[11px] text-indigo-400 font-medium">Saturday, Sep 26</span>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-center sm:justify-start gap-2.5">
+                            <span id="statusBadge" class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 pulse-glow">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span id="statusText">CLOCKED IN</span>
+                            </span>
+                            <span class="text-xs text-slate-400">Shift: <strong class="text-slate-200">09:00 AM - 05:00 PM</strong></span>
+                        </div>
+                        <div class="text-xs text-slate-300">
+                            Clocked in today at <span class="font-mono-num font-semibold text-emerald-400">08:54 AM</span> &bull; Location: <span class="text-slate-200">Raipur HQ / Remote</span>
+                        </div>
+                        <div class="text-xs text-slate-400 flex items-center justify-center sm:justify-start gap-4 pt-1">
+                            <span>Today Worked: <strong id="todayHours" class="font-mono-num text-white font-bold">7h 33m</strong></span>
+                            <span>Break Taken: <strong id="todayBreak" class="font-mono-num text-slate-300 font-semibold">45m</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Interactive Punch / Break Controls -->
+                <div class="flex flex-wrap items-center justify-center gap-3 w-full sm:w-auto">
+                    <button id="breakBtn" onclick="toggleBreak()" class="flex-1 sm:flex-none px-5 py-3 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-500/30 hover:border-amber-500/60 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-mug-hot text-sm"></i>
+                        <span id="breakBtnText">Start Break</span>
+                    </button>
+
+                    <button id="punchBtn" onclick="togglePunch()" class="flex-1 sm:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                        <span id="punchBtnText">Clock Out Now</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Subtle Ambient Background Accent -->
+            <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        </div>
+
+        <!-- Key Metrics Cards (KPI Bar) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Metric 1: Total Hours Logged -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Hours Logged</span>
+                    <div class="p-2.5 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
+                        <i class="fa-solid fa-hourglass-half text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight font-mono-num" id="kpiHours">156.5 hrs</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">Monthly Target: <strong class="text-slate-200">160 hrs</strong></span>
+                        <span class="text-emerald-400 font-bold text-[11px]"><i class="fa-solid fa-arrow-trend-up mr-0.5"></i> 97.8%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 2: Attendance Rate -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Attendance Rate</span>
+                    <div class="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                        <i class="fa-solid fa-user-check text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight font-mono-num" id="kpiRate">98.2%</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">On-Time Punches: <strong class="text-slate-200">22 / 23</strong></span>
+                        <span class="text-emerald-400 font-bold text-[11px]">High Compliance</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 3: Overtime Hours -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Overtime Logged</span>
+                    <div class="p-2.5 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                        <i class="fa-solid fa-business-time text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight font-mono-num" id="kpiOvertime">14.5 hrs</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">Approved Rate: <strong class="text-emerald-400">1.5x Pay</strong></span>
+                        <span class="text-amber-400 font-medium text-[11px]">+₹435 Est.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric 4: Pending Requests -->
+            <div class="glass-card p-5 rounded-2xl glass-card-hover flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending Approvals</span>
+                    <div class="p-2.5 bg-violet-500/10 text-violet-400 rounded-xl border border-violet-500/20">
+                        <i class="fa-solid fa-clipboard-question text-sm"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="text-2xl font-extrabold text-white tracking-tight" id="kpiPending">2 Requests</div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px]">1 Punch Adj. &bull; 1 Shift Shift</span>
+                        <button onclick="openPunchModal()" class="text-violet-400 hover:text-violet-300 font-semibold text-[11px] underline">Track Status</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Interactive Analytics Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Chart (2 Cols): Daily Hours Logged vs Scheduled -->
+            <div class="lg:col-span-2 glass-card p-5 rounded-2xl flex flex-col justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="font-bold text-slate-100 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-indigo-400"></i>
+                            Daily Worked Hours vs Scheduled Shift
+                        </h2>
+                        <p class="text-xs text-slate-400">Comparing actual logged work hours against target 8-hour daily shifts</p>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center gap-1.5 text-slate-300">
+                            <span class="w-3 h-3 rounded bg-indigo-500 inline-block"></span> Worked Hours
+                        </span>
+                        <span class="flex items-center gap-1.5 text-slate-300">
+                            <span class="w-3 h-3 rounded bg-amber-400 inline-block"></span> Overtime
+                        </span>
+                        <span class="flex items-center gap-1.5 text-slate-400">
+                            <span class="w-3 h-0.5 bg-slate-500 inline-block"></span> Target (8h)
+                        </span>
+                    </div>
+                </div>
+                <div class="relative h-64 w-full">
+                    <canvas id="hoursTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Right Chart (1 Col): Time Category Breakdown Donut -->
+            <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+                <div>
+                    <h2 class="font-bold text-slate-100 text-base flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-chart-pie text-violet-400"></i>
+                        Time Distribution
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4">Cumulative distribution of total logged hours this month</p>
+                </div>
+                <div class="relative h-52 w-full flex items-center justify-center">
+                    <canvas id="timeDonutChart"></canvas>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between items-center">
+                    <span>Total Accounted: <strong class="text-slate-200 font-mono-num">178.0 hrs</strong></span>
+                    <span class="text-indigo-400 font-semibold">4 Time Types</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Weekly Timesheet & Punch Log Table Container -->
+        <div class="glass-card rounded-2xl overflow-hidden">
+            
+            <!-- Table Navigation Tabs & Header Controls -->
+            <div class="p-5 border-b border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                
+                <!-- View Tabs -->
+                <div class="flex items-center space-x-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 self-start lg:self-auto text-xs">
+                    <button id="tabMyLog" onclick="switchTableTab('my_log')" class="tab-btn bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-user-clock"></i>
+                        <span>My Attendance Log</span>
+                    </button>
+                    <button id="tabTeamMatrix" onclick="switchTableTab('team_matrix')" class="tab-btn hover:text-white text-slate-400 px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Team Punch Matrix</span>
+                    </button>
+                    <button id="tabSchedules" onclick="switchTableTab('schedules')" class="tab-btn hover:text-white text-slate-400 px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>Shift Schedules</span>
+                    </button>
+                </div>
+
+                <!-- Filters & Search Bar -->
+                <div class="flex flex-wrap items-center gap-3">
+                    
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <input type="text" id="tableSearch" onkeyup="filterTableData()" placeholder="Search date, status, note..." class="bg-slate-900 text-xs text-slate-200 border border-slate-700 rounded-xl pl-8 pr-3 py-2 w-44 sm:w-56 focus:outline-none focus:border-indigo-500 transition-all">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
+                    </div>
+
+                    <!-- Status Filter Dropdown -->
+                    <select id="statusFilter" onchange="filterTableData()" class="bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 cursor-pointer">
+                        <option value="All">All Statuses</option>
+                        <option value="On Time">On Time</option>
+                        <option value="Late">Late Entry</option>
+                        <option value="Overtime">Overtime</option>
+                        <option value="On Leave">On Leave / PTO</option>
+                    </select>
+
+                    <button onclick="exportTimesheetCSV()" class="p-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl border border-slate-700 transition-all text-xs flex items-center gap-1.5" title="Export CSV">
+                        <i class="fa-solid fa-file-csv text-emerald-400"></i>
+                        <span class="hidden sm:inline">Export</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Table Content Area -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300" id="attendanceTable">
+                    <thead class="bg-slate-900/90 uppercase text-[10px] text-slate-400 font-bold tracking-wider border-b border-slate-800">
+                        <tr id="tableHeadRow">
+                            <th scope="col" class="py-3.5 px-5">Date & Day</th>
+                            <th scope="col" class="py-3.5 px-4">Clock In</th>
+                            <th scope="col" class="py-3.5 px-4">Clock Out</th>
+                            <th scope="col" class="py-3.5 px-4">Total Worked</th>
+                            <th scope="col" class="py-3.5 px-4">Overtime</th>
+                            <th scope="col" class="py-3.5 px-4">Break Time</th>
+                            <th scope="col" class="py-3.5 px-4">Status</th>
+                            <th scope="col" class="py-3.5 px-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60" id="tableBody">
+                        
+                        <!-- Row 1: Today (In Progress) -->
+                        <tr class="hover:bg-slate-800/40 transition-colors bg-indigo-500/5" data-status="On Time" data-search="sep 26 saturday on time">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100 flex items-center gap-2">
+                                    <span>Sep 26, 2026</span>
+                                    <span class="bg-indigo-500/20 text-indigo-300 text-[9px] px-1.5 py-0.2 rounded border border-indigo-500/30 font-semibold">Today</span>
+                                </div>
+                                <div class="text-[10px] text-slate-400">Saturday</div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono-num text-emerald-400 font-semibold">08:54 AM</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">In Progress</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-slate-100">7h 33m</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-300">45 mins</td>
+                            <td class="py-3.5 px-4">
+                                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> On Time
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="viewRowDetails('Sep 26, 2026', '08:54 AM', 'In Progress', '7h 33m', 'On Time')" class="p-1.5 bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all text-xs" title="View Punch Audit">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 2: Sep 25 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-status="Overtime" data-search="sep 25 friday overtime">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Sep 25, 2026</div>
+                                <div class="text-[10px] text-slate-400">Friday</div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">08:58 AM</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">07:15 PM</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-slate-100">9h 45m</td>
+                            <td class="py-3.5 px-4 font-mono-num text-amber-400 font-bold">+1.75 hrs</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-300">45 mins</td>
+                            <td class="py-3.5 px-4">
+                                <span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Overtime</span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="viewRowDetails('Sep 25, 2026', '08:58 AM', '07:15 PM', '9h 45m', 'Overtime')" class="p-1.5 bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all text-xs">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 3: Sep 24 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-status="On Time" data-search="sep 24 thursday on time">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Sep 24, 2026</div>
+                                <div class="text-[10px] text-slate-400">Thursday</div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">09:01 AM</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">05:05 PM</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-slate-100">8h 04m</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-300">60 mins</td>
+                            <td class="py-3.5 px-4">
+                                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full">On Time</span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="viewRowDetails('Sep 24, 2026', '09:01 AM', '05:05 PM', '8h 04m', 'On Time')" class="p-1.5 bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all text-xs">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 4: Sep 23 (Late Entry) -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-status="Late" data-search="sep 23 wednesday late">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Sep 23, 2026</div>
+                                <div class="text-[10px] text-slate-400">Wednesday</div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono-num text-rose-400 font-semibold">09:35 AM</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">05:30 PM</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-slate-100">7h 55m</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-300">40 mins</td>
+                            <td class="py-3.5 px-4">
+                                <span class="bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full">Late Entry</span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="openPunchModal('Sep 23, 2026')" class="p-1.5 bg-slate-900 hover:bg-amber-600 text-amber-400 hover:text-white rounded-lg border border-slate-700 transition-all text-xs" title="Request Adjustment">
+                                    <i class="fa-solid fa-wrench"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 5: Sep 22 -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-status="On Time" data-search="sep 22 tuesday on time">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Sep 22, 2026</div>
+                                <div class="text-[10px] text-slate-400">Tuesday</div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">08:52 AM</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-200">05:10 PM</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-slate-100">8h 18m</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-300">50 mins</td>
+                            <td class="py-3.5 px-4">
+                                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full">On Time</span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="viewRowDetails('Sep 22, 2026', '08:52 AM', '05:10 PM', '8h 18m', 'On Time')" class="p-1.5 bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all text-xs">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Row 6: Sep 21 (On Leave) -->
+                        <tr class="hover:bg-slate-800/40 transition-colors" data-status="On Leave" data-search="sep 21 monday on leave pto">
+                            <td class="py-3.5 px-5">
+                                <div class="font-bold text-slate-100">Sep 21, 2026</div>
+                                <div class="text-[10px] text-slate-400">Monday</div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">—</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">—</td>
+                            <td class="py-3.5 px-4 font-mono-num font-bold text-cyan-400">8h 00m (PTO)</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                            <td class="py-3.5 px-4 font-mono-num text-slate-500">—</td>
+                            <td class="py-3.5 px-4">
+                                <span class="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold px-2.5 py-0.5 rounded-full">On Leave (PTO)</span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <button onclick="viewRowDetails('Sep 21, 2026', 'N/A', 'N/A', '8h Paid PTO', 'Approved PTO')" class="p-1.5 bg-slate-900 hover:bg-cyan-600 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all text-xs">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Pagination & Summary Footer -->
+            <div class="p-4 bg-slate-900/60 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-3">
+                <div>Showing <span class="text-slate-200 font-semibold" id="rowCount">6</span> records for selected period</div>
+                <div class="flex items-center space-x-2">
+                    <button class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 font-medium transition-all disabled:opacity-50" disabled>Previous</button>
+                    <span class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-bold">1</span>
+                    <button class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 font-medium transition-all">Next</button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Modal 1: Request Missing Punch / Adjustment -->
+    <div id="punchModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-800 relative">
+            <button onclick="closePunchModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-5">
+                <div class="p-3 bg-amber-500/10 text-amber-400 rounded-2xl border border-amber-500/20">
+                    <i class="fa-solid fa-file-signature text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-white text-lg">Submit Missing Punch Request</h3>
+                    <p class="text-xs text-slate-400">Correction request for time tracking or missed clock in/out</p>
+                </div>
+            </div>
+
+            <form onsubmit="handlePunchSubmit(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Adjustment Date</label>
+                    <input type="date" id="adjDate" value="2026-09-23" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1.5">Requested Clock In</label>
+                        <input type="time" value="09:00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1.5">Requested Clock Out</label>
+                        <input type="time" value="17:00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Reason for Missing Punch</label>
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-amber-500">
+                        <option value="system_glitch">System / Technical Issue</option>
+                        <option value="forgot">Forgot to Clock In / Out</option>
+                        <option value="offsite">Offsite Meeting / Field Work</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Approving Manager</label>
+                    <input type="text" value="Sarah Jenkins (Engineering Lead)" readonly class="w-full bg-slate-900/60 border border-slate-800 text-slate-400 rounded-xl px-3 py-2.5 cursor-not-allowed">
+                </div>
+
+                <div class="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-slate-300 text-[11px] flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-amber-400 text-sm"></i>
+                    <span>Requests will be reviewed by your team lead within 24 hours.</span>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closePunchModal()" class="px-4 py-2.5 rounded-xl font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30">Submit Adjustment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Schedule Shift / Overtime Request -->
+    <div id="shiftModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="glass-card w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-800 relative">
+            <button onclick="closeShiftModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center space-x-3 mb-5">
+                <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20">
+                    <i class="fa-solid fa-calendar-plus text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-extrabold text-white text-lg">Schedule Shift / Overtime Request</h3>
+                    <p class="text-xs text-slate-400">Request extra hours or change assigned working schedule</p>
+                </div>
+            </div>
+
+            <form onsubmit="handleShiftSubmit(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Request Type</label>
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+                        <option value="overtime">Pre-Approved Overtime (+2 to 4 hrs)</option>
+                        <option value="swap">Shift Swap with Colleague</option>
+                        <option value="schedule_change">Permanent Schedule Adjustment</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1.5">Effective Date</label>
+                        <input type="date" value="2026-09-28" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-300 mb-1.5">Est. Overtime Hours</label>
+                        <input type="number" step="0.5" value="2.0" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">Project / Task Code</label>
+                    <input type="text" value="PRJ-8812: Q3 Core Dashboard Release" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeShiftModal()" class="px-4 py-2.5 rounded-xl font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30">Submit Shift Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Popup -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <div id="toastIcon" class="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-xl">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <span id="toastMsg">Notification message</span>
+    </div>
+
+    <script>
+        // State variables
+        let isClockedIn = true;
+        let isOnBreak = false;
+        let clockInterval;
+        let trendChartInstance, donutChartInstance;
+
+        window.onload = function() {
+            startLiveClock();
+            initCharts();
+        };
+
+        // Live Clock Engine
+        function startLiveClock() {
+            const clockEl = document.getElementById('liveClock');
+            const dateEl = document.getElementById('liveDate');
+
+            function updateTime() {
+                const now = new Date();
+                clockEl.innerText = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                dateEl.innerText = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            }
+            updateTime();
+            clockInterval = setInterval(updateTime, 1000);
+        }
+
+        // Initialize Chart.js Graphs
+        function initCharts() {
+            // Chart 1: Worked vs Scheduled Line/Bar Chart
+            const ctx1 = document.getElementById('hoursTrendChart').getContext('2d');
+            trendChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Mon (21)', 'Tue (22)', 'Wed (23)', 'Thu (24)', 'Fri (25)', 'Sat (26)', 'Sun (27)'],
+                    datasets: [
+                        {
+                            label: 'Regular Hours',
+                            data: [8.0, 8.0, 7.9, 8.0, 8.0, 7.5, 0.0],
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Overtime Hours',
+                            data: [0.0, 0.3, 0.0, 0.1, 1.75, 0.0, 0.0],
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+                        y: { grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#94a3b8', callback: v => v + 'h' }, max: 12 }
+                    }
+                }
+            });
+
+            // Chart 2: Time Distribution Donut Chart
+            const ctx2 = document.getElementById('timeDonutChart').getContext('2d');
+            donutChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Regular Worked', 'Paid Overtime', 'Break / Lunch', 'PTO / Leave'],
+                    datasets: [{
+                        data: [142, 14.5, 13.5, 8.0],
+                        backgroundColor: ['#6366f1', '#f59e0b', '#06b6d4', '#10b981'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#cbd5e1', font: { size: 10 }, boxWidth: 12 }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Live Clock In / Clock Out Action Handler
+        function togglePunch() {
+            const punchBtnText = document.getElementById('punchBtnText');
+            const punchBtn = document.getElementById('punchBtn');
+            const statusText = document.getElementById('statusText');
+            const statusBadge = document.getElementById('statusBadge');
+            const breakBtn = document.getElementById('breakBtn');
+
+            if (isClockedIn) {
+                // Perform Clock Out
+                isClockedIn = false;
+                isOnBreak = false;
+                punchBtnText.innerText = "Clock In Now";
+                punchBtn.className = "flex-1 sm:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2";
+                
+                statusText.innerText = "CLOCKED OUT";
+                statusBadge.className = "bg-rose-500/10 text-rose-400 border border-rose-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5";
+                
+                breakBtn.disabled = true;
+                breakBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                showToast("Successfully clocked out for today!");
+            } else {
+                // Perform Clock In
+                isClockedIn = true;
+                punchBtnText.innerText = "Clock Out Now";
+                punchBtn.className = "flex-1 sm:flex-none px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2";
+                
+                statusText.innerText = "CLOCKED IN";
+                statusBadge.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 pulse-glow";
+                
+                breakBtn.disabled = false;
+                breakBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                showToast("Clocked in! Have a productive workday.");
+            }
+        }
+
+        // Break Action Handler
+        function toggleBreak() {
+            if (!isClockedIn) return;
+
+            const breakBtnText = document.getElementById('breakBtnText');
+            const statusText = document.getElementById('statusText');
+            const statusBadge = document.getElementById('statusBadge');
+
+            if (!isOnBreak) {
+                isOnBreak = true;
+                breakBtnText.innerText = "End Break";
+                statusText.innerText = "ON BREAK";
+                statusBadge.className = "bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5";
+                showToast("Break started. Take your time to refresh!");
+            } else {
+                isOnBreak = false;
+                breakBtnText.innerText = "Start Break";
+                statusText.innerText = "CLOCKED IN";
+                statusBadge.className = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 pulse-glow";
+                showToast("Welcome back! Resumed active duty.");
+            }
+        }
+
+        // Table Switch Tabs
+        function switchTableTab(tab) {
+            const tabs = ['tabMyLog', 'tabTeamMatrix', 'tabSchedules'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(t);
+                if ((t === 'tabMyLog' && tab === 'my_log') || 
+                    (t === 'tabTeamMatrix' && tab === 'team_matrix') || 
+                    (t === 'tabSchedules' && tab === 'schedules')) {
+                    btn.className = "tab-btn bg-indigo-600 text-white px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-2";
+                } else {
+                    btn.className = "tab-btn hover:text-white text-slate-400 px-3.5 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-2";
+                }
+            });
+
+            if (tab === 'team_matrix') {
+                renderTeamMatrix();
+            } else if (tab === 'schedules') {
+                renderSchedules();
+            } else {
+                window.location.reload(); // Reset to personal log
+            }
+        }
+
+        function renderTeamMatrix() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `
+                <tr class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3.5 px-5 font-bold text-slate-100">Sarah Jenkins (Tech Lead)</td>
+                    <td class="py-3.5 px-4 font-mono-num text-emerald-400">08:45 AM</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">In Progress</td>
+                    <td class="py-3.5 px-4 font-mono-num font-bold">7h 42m</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-300">30 mins</td>
+                    <td class="py-3.5 px-4"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Clocked In</span></td>
+                    <td class="py-3.5 px-4 text-center"><button class="text-xs text-indigo-400 underline">Audit</button></td>
+                </tr>
+                <tr class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3.5 px-5 font-bold text-slate-100">David Miller (Senior Dev)</td>
+                    <td class="py-3.5 px-4 font-mono-num text-emerald-400">09:00 AM</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">In Progress</td>
+                    <td class="py-3.5 px-4 font-mono-num font-bold">7h 27m</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-300">45 mins</td>
+                    <td class="py-3.5 px-4"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Clocked In</span></td>
+                    <td class="py-3.5 px-4 text-center"><button class="text-xs text-indigo-400 underline">Audit</button> instruction</td>
+                </tr>
+                <tr class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3.5 px-5 font-bold text-slate-100">Elena Rostova (UX Designer)</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">—</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">—</td>
+                    <td class="py-3.5 px-4 font-mono-num font-bold text-cyan-400">0h 00m</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">0.0 hrs</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-500">—</td>
+                    <td class="py-3.5 px-4"><span class="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">On Leave</span></td>
+                    <td class="py-3.5 px-4 text-center"><button class="text-xs text-slate-500">View PTO</button></td>
+                </tr>
+            `;
+            document.getElementById('rowCount').innerText = '3';
+            showToast("Switched to Team Punch Matrix View");
+        }
+
+        function renderSchedules() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = `
+                <tr class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3.5 px-5 font-bold text-slate-100">Standard Morning Shift</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-300">09:00 AM</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-300">05:00 PM</td>
+                    <td class="py-3.5 px-4 font-mono-num font-bold">8.0 hrs/day</td>
+                    <td class="py-3.5 px-4 font-mono-num text-slate-400">1.0 hr Lunch</td>
+                    <td class="py-3.5 px-4 font-mono-num text-emerald-400">Mon - Fri</td>
+                    <td class="py-3.5 px-4"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Assigned Primary</span></td>
+                    <td class="py-3.5 px-4 text-center"><button onclick="openShiftModal()" class="text-xs text-indigo-400 underline">Modify</button></td>
+                </tr>
+            `;
+            document.getElementById('rowCount').innerText = '1';
+            showToast("Switched to Shift Schedule View");
+        }
+
+        // Search & Status Filters
+        function filterTableData() {
+            const searchQuery = document.getElementById('tableSearch').value.toLowerCase();
+            const selectedStatus = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('#tableBody tr');
+
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search') || row.innerText.toLowerCase();
+                const rowStatus = row.getAttribute('data-status') || '';
+
+                const matchesSearch = searchData.includes(searchQuery);
+                const matchesStatus = (selectedStatus === 'All' || rowStatus === selectedStatus);
+
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            document.getElementById('rowCount').innerText = visibleCount;
+        }
+
+        // Date Range Handler
+        function handleRangeChange(val) {
+            showToast(`Filtered attendance records for ${val.replace('_', ' ')}`);
+        }
+
+        // Modal Logic
+        function openPunchModal(dateStr) {
+            if (dateStr) document.getElementById('adjDate').value = '2026-09-23';
+            document.getElementById('punchModal').classList.remove('hidden');
+            document.getElementById('punchModal').classList.add('flex');
+        }
+        function closePunchModal() {
+            document.getElementById('punchModal').classList.add('hidden');
+            document.getElementById('punchModal').classList.remove('flex');
+        }
+        function handlePunchSubmit(e) {
+            e.preventDefault();
+            closePunchModal();
+            showToast("Missing punch adjustment submitted to Sarah Jenkins!");
+        }
+
+        function openShiftModal() {
+            document.getElementById('shiftModal').classList.remove('hidden');
+            document.getElementById('shiftModal').classList.add('flex');
+        }
+        function closeShiftModal() {
+            document.getElementById('shiftModal').classList.add('hidden');
+            document.getElementById('shiftModal').classList.remove('flex');
+        }
+        function handleShiftSubmit(e) {
+            e.preventDefault();
+            closeShiftModal();
+            showToast("Shift change request logged for manager approval.");
+        }
+
+        function viewRowDetails(date, inTime, outTime, total, status) {
+            showToast(`Punch Audit [${date}]: In: ${inTime} | Out: ${outTime} | Total: ${total}`);
+        }
+
+        function exportTimesheetCSV() {
+            showToast("Exporting official timesheet log to CSV...");
+        }
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Payroll & Sales Executive Portal</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#111827',
+                            900: '#0f172a',
+                            950: '#060911',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 8s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) scale(1)' },
+                            '50%': { transform: 'translateY(-20px) scale(1.05)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        /* Glassmorphism Styles */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px -5px rgba(99, 102, 241, 0.15);
+        }
+
+        .glass-input {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .glass-input:focus {
+            background: rgba(30, 41, 59, 0.9);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Gradient Glow Background Orbs */
+        .orb-1 {
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(0, 0, 0, 0) 70%);
+        }
+        .orb-2 {
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
+        }
+        .orb-3 {
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
+        }
+
+        /* Spinner animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-fast {
+            animation: spin 0.6s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8 relative overflow-x-hidden antialiased select-none">
+
+    <!-- Ambient Background Glows -->
+    <div class="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] orb-1 rounded-full animate-pulse-slow pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] orb-2 rounded-full animate-float pointer-events-none"></div>
+    <div class="fixed top-[40%] right-[25%] w-[350px] h-[350px] orb-3 rounded-full animate-pulse-slow pointer-events-none"></div>
+
+    <!-- Main Outer Container -->
+    <div class="w-full max-w-md relative z-10 my-auto">
+
+        <!-- Brand Header & Logo -->
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center p-3 bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-500 rounded-2xl shadow-xl shadow-indigo-500/20 mb-3 border border-white/20">
+                <i class="fa-solid fa-chart-line text-2xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold tracking-tight text-white">
+                Apex<span class="text-indigo-400">Analytics</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">Enterprise Sales & Payroll Executive Portal</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="glass-panel rounded-3xl p-6 sm:p-8">
+            
+            <!-- User Role Switcher Tabs -->
+            <div class="grid grid-cols-2 gap-1 bg-slate-900/80 p-1 rounded-2xl mb-6 border border-slate-800">
+                <button type="button" id="tabExec" onclick="switchRole('exec')" class="py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-md">
+                    <i class="fa-solid fa-user-shield text-xs"></i>
+                    <span>Executive / HR</span>
+                </button>
+                <button type="button" id="tabEmp" onclick="switchRole('emp')" class="py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-user-group text-xs"></i>
+                    <span>Employee</span>
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                
+                <!-- Email or Employee ID Input -->
+                <div>
+                    <label id="inputLabel" for="userIdentity" class="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                        <span>Work Email or ID</span>
+                        <span class="text-[10px] text-slate-500">Required</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-envelope text-xs" id="identityIcon"></i>
+                        </div>
+                        <input type="text" id="userIdentity" required placeholder="s.sahu@apexanalytics.io"
+                            class="glass-input w-full pl-10 pr-4 py-2.5 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Password Input -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="password" class="block text-xs font-semibold text-slate-300">Password</label>
+                        <a href="#" onclick="handleForgotPassword(event)" class="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">Forgot password?</a>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-lock text-xs"></i>
+                        </div>
+                        <input type="password" id="password" required placeholder="••••••••••••" 
+                            class="glass-input w-full pl-10 pr-10 py-2.5 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none">
+                            <i class="fa-solid fa-eye text-xs" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Remember Me & Security Status -->
+                <div class="flex items-center justify-between pt-1">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="rememberMe" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer">
+                        <span class="text-xs text-slate-400">Remember session</span>
+                    </label>
+                    <span class="text-[10px] text-emerald-400 flex items-center gap-1 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        <i class="fa-solid fa-shield-halved text-[9px]"></i> 256-bit SSL
+                    </span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submitBtn" class="w-full mt-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all duration-200 flex items-center justify-center space-x-2 border border-indigo-400/30 active:scale-[0.99]">
+                    <span id="btnText">Sign In to Dashboard</span>
+                    <i class="fa-solid fa-arrow-right text-xs" id="btnIcon"></i>
+                </button>
+            </form>
+
+            <!-- SSO Divider & Quick Options -->
+            <div class="relative my-6 text-center">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+                <span class="relative px-3 bg-slate-900 text-[10px] font-bold text-slate-500 uppercase tracking-wider rounded-full border border-slate-800">Or Continue With</span>
+            </div>
+
+            <!-- Single Sign-On (SSO) Buttons -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="simulateSSO('Okta Identity')" class="py-2.5 px-3 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl border border-slate-800 text-xs font-semibold flex items-center justify-center space-x-2 transition-all">
+                    <i class="fa-solid fa-key text-indigo-400 text-xs"></i>
+                    <span>Enterprise SSO</span>
+                </button>
+                <button onclick="simulateSSO('Microsoft Azure AD')" class="py-2.5 px-3 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl border border-slate-800 text-xs font-semibold flex items-center justify-center space-x-2 transition-all">
+                    <i class="fa-brands fa-microsoft text-cyan-400 text-xs"></i>
+                    <span>Azure AD</span>
+                </button>
+            </div>
+
+            <!-- Demo Quick Fill Shortcuts -->
+            <div class="mt-6 pt-5 border-t border-slate-800/80">
+                <p class="text-[10px] font-bold uppercase text-slate-500 tracking-wider mb-2.5 text-center flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-amber-400"></i> Quick Demo Access
+                </p>
+                <div class="flex flex-wrap gap-1.5 justify-center">
+                    <button onclick="fillDemoCredentials('exec')" class="px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded-lg text-[11px] font-medium transition-colors">
+                        Executive VP
+                    </button>
+                    <button onclick="fillDemoCredentials('hr')" class="px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 rounded-lg text-[11px] font-medium transition-colors">
+                        HR Admin
+                    </button>
+                    <button onclick="fillDemoCredentials('emp')" class="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/20 rounded-lg text-[11px] font-medium transition-colors">
+                        Sales Rep
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer / Support Info -->
+        <div class="text-center mt-6 text-xs text-slate-500 flex items-center justify-between px-2">
+            <span>&copy; 2026 Apex Analytics Inc.</span>
+            <div class="space-x-3">
+                <a href="#" class="hover:text-slate-400 transition-colors">Privacy</a>
+                <span>&bull;</span>
+                <a href="#" class="hover:text-slate-400 transition-colors">Support</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-800 border border-slate-700 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 z-50 max-w-sm">
+        <div id="toastIcon" class="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-xl">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <span id="toastMsg">Notification message</span>
+    </div>
+
+    <script>
+        let currentRole = 'exec'; // 'exec' or 'emp'
+
+        // Toggle Password Visibility
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                pwdInput.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Role Tab Switching
+        function switchRole(role) {
+            currentRole = role;
+            const tabExec = document.getElementById('tabExec');
+            const tabEmp = document.getElementById('tabEmp');
+            const identityInput = document.getElementById('userIdentity');
+            const inputLabel = document.getElementById('inputLabel');
+            const identityIcon = document.getElementById('identityIcon');
+
+            if (role === 'exec') {
+                tabExec.className = "py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-md";
+                tabEmp.className = "py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200";
+                
+                inputLabel.innerHTML = '<span>Work Email or ID</span><span class="text-[10px] text-slate-500">Executive / HR</span>';
+                identityInput.placeholder = "s.sahu@apexanalytics.io";
+                identityIcon.className = "fa-solid fa-envelope text-xs";
+                
+                showToast("Switched to Executive & HR Portal Mode");
+            } else {
+                tabEmp.className = "py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-md";
+                tabExec.className = "py-2 px-3 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 text-slate-400 hover:text-slate-200";
+                
+                inputLabel.innerHTML = '<span>Employee ID or Username</span><span class="text-[10px] text-slate-500">Employee Portal</span>';
+                identityInput.placeholder = "EMP-94821";
+                identityIcon.className = "fa-solid fa-id-card text-xs";
+                
+                showToast("Switched to Employee Self-Service Mode");
+            }
+        }
+
+        // Quick Fill Demo Credentials
+        function fillDemoCredentials(type) {
+            const identityInput = document.getElementById('userIdentity');
+            const passwordInput = document.getElementById('password');
+
+            if (type === 'exec') {
+                switchRole('exec');
+                identityInput.value = "s.sahu@apexanalytics.io";
+                passwordInput.value = "ExecutivePass2026!";
+                showToast("Autofilled Executive Credentials");
+            } else if (type === 'hr') {
+                switchRole('exec');
+                identityInput.value = "shu.sahu@apexanalytics.io";
+                passwordInput.value = "HRPayrollMaster2026!";
+                showToast("Autofilled HR Administrator Credentials");
+            } else if (type === 'emp') {
+                switchRole('emp');
+                identityInput.value = "EMP-88412";
+                passwordInput.value = "SalesRepPortal!2026";
+                showToast("Autofilled Employee Credentials");
+            }
+        }
+
+        // Handle Form Submission with Simulated Loading Animation
+        async function handleLogin(event) {
+
+    event.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnIcon = document.getElementById('btnIcon');
+
+    const identity = document.getElementById('userIdentity').value.trim();
+    const password = document.getElementById('password').value;
+
+    // Loading state
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+
+    btnText.innerText = "Authenticating Session...";
+    btnIcon.className = "fa-solid fa-circle-notch animate-spin-fast text-xs";
+
+    try {
+
+        const response = await fetch("/api/auth/login", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                identity: identity,
+                password: password,
+                role: currentRole
+            })
+
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Login failed");
+        }
+
+        // Save login token
+        localStorage.setItem("token", data.token);
+
+        // Save user information
+        localStorage.setItem(
+            "user",
+            JSON.stringify(data.user)
+        );
+
+        // Success UI
+        submitBtn.classList.remove(
+            'from-indigo-600',
+            'to-purple-600'
+        );
+
+        submitBtn.classList.add(
+            'from-emerald-600',
+            'to-teal-600'
+        );
+
+        btnText.innerText = "Access Granted! Redirecting...";
+        btnIcon.className = "fa-solid fa-check text-xs";
+
+        showToast(
+            `Welcome back, ${data.user.name}!`
+        );
+
+        // Redirect according to role
+        setTimeout(() => {
+
+            if (data.user.role === "employee") {
+
+                window.location.href = "empolyee.html";
+
+            } else {
+
+                window.location.href = "hrdashboard.html";
+
+            }
+
+        }, 1000);
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(error.message);
+
+        // Reset button
+        submitBtn.disabled = false;
+
+        submitBtn.classList.remove(
+            'opacity-80',
+            'cursor-not-allowed'
+        );
+
+        btnText.innerText = "Sign In to Dashboard";
+        btnIcon.className = "fa-solid fa-arrow-right text-xs";
+    }
+}
+        // Single Sign-On Simulation
+        function simulateSSO(provider) {
+            showToast(`Connecting to ${provider} Provider...`);
+        }
+
+        // Forgot Password Action
+        function handleForgotPassword(e) {
+            e.preventDefault();
+            const identity = document.getElementById('userIdentity').value;
+            if (identity) {
+                showToast(`Password reset link dispatched to ${identity}`);
+            } else {
+                showToast("Please enter your Work Email or ID above first");
+            }
+        }
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3200);
+        }
+    </script>
+</body>
+</html>
